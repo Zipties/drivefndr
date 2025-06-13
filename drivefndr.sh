@@ -42,7 +42,7 @@ print_grid() {
         physical_slot=$(( row_idx * COLS + col_idx + 1 ))
 
         # display_slot determines the number shown as the label in the grid cell.
-        # This follows the new top-down, then left-to-right column numbering.
+        # This follows top-down, then left-to-right column numbering.
         display_slot=$(( col_idx * ROWS + row_idx + 1 ))
 
         IFS=";" read -r slotn disk serial size <<<"${slotmap[$physical_slot]}"
