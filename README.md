@@ -52,3 +52,25 @@ If you’ve ever wondered “which drive is `/dev/sdm`?” or needed to swap a f
 2. Make executable:
    ```bash
    chmod +x drivefndr.sh
+
+## 🏁 Run `drivefndr` From Anywhere (Optional)
+
+If your system is **read-only** (like TrueNAS SCALE), you can't symlink scripts into `/usr/local/bin`.
+Instead, create a shell alias so you can call `drivefndr` globally:
+
+### 1. Open your `.bashrc` (or `.profile`)
+nano ~/.bashrc
+
+### 2. Add this line at the end
+alias drivefndr='/root/drivefndr.sh'
+# (Update the path if your script is elsewhere!)
+
+### 3. Reload your shell
+source ~/.bashrc
+
+### 4. Now you can run `drivefndr` from anywhere
+drivefndr
+
+**Note:**
+Any changes you make to `/root/drivefndr.sh` take effect immediately.
+
