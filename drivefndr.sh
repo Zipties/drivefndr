@@ -1,26 +1,63 @@
 #!/bin/bash
+##############################################################################
+#                              USER CONFIG SECTION                           #
+##############################################################################
 
-# === CONFIG SECTION ===
-
-ENC_DIR="/sys/class/enclosure/2:0:22:0"
+# Number of columns (horizontal slots per row)
 COLS=4
+# Number of rows (vertical)
 ROWS=6
-
-# --- Optional custom display labels ---
+# Do you want to use custom labels in the grid? (1 = yes, 0 = auto-number)
 USE_CUSTOM_LABELS=0
+# Define the labels for each slot, row by row (use single quotes for multi-word labels)
+# If USE_CUSTOM_LABELS=0, this section is ignored.
 DISPLAY_LABELS_GRID="
-  Slot\ 1  Slot\ 2  Slot\ 3  Slot\ 4
-  Slot\ 5  Slot\ 6  Slot\ 7  Slot\ 8
-  Slot\ 9  Slot\ 10 Slot\ 11 Slot\ 12
-  Slot\ 13 Slot\ 14 Slot\ 15 Slot\ 16
-  Slot\ 17 Slot\ 18 Slot\ 19 Slot\ 20
-  Slot\ 21 Slot\ 22 Slot\ 23 Slot\ 24
+  'Slot 1'  'Slot 2'  'Slot 3'  'Slot 4'
+  'Slot 5'  'Slot 6'  'Slot 7'  'Slot 8'
+  'Slot 9'  'Slot 10' 'Slot 11' 'Slot 12'
+  'Slot 13' 'Slot 14' 'Slot 15' 'Slot 16'
+  'Slot 17' 'Slot 18' 'Slot 19' 'Slot 20'
+  'Slot 21' 'Slot 22' 'Slot 23' 'Slot 24'
 "
 
+##############################################################################
+#                         END USER CONFIG SECTION                            #
+##############################################################################
 
-# Set USE_CUSTOM_LABELS=0 to use default "Slot X" labels.
+# --- Enclosure detection and persistent config ---
+CONFIG_FILE="$HOME/.slotgrid.conf"
 
-# === END CONFIG ===
+select_enclosure() {
+  mapfile -t ENCLOSURES < <(find /sys/class/enclosure -maxdepth 1 -mindepth 1 \( -type d -o -type l \) | sort)
+  if [ ${#ENCLOSURES[@]} -eq 0 ]; then
+    echo "No enclosures found under /sys/class/enclosure."
+    exit 1
+  fi
+
+  echo "Available enclosures:"
+  for i in "${!ENCLOSURES[@]}"; do
+    echo " $((i+1))) ${ENCLOSURES[$i]}"
+  done
+  while true; do
+    read -p "Select enclosure number [1-${#ENCLOSURES[@]}]: " selection
+    if [[ "$selection" =~ ^[1-9][0-9]*$ ]] && [ "$selection" -ge 1 ] && [ "$selection" -le ${#ENCLOSURES[@]} ]; then
+      echo "ENC_DIR=\"${ENCLOSURES[$((selection-1))]}\"" > "$CONFIG_FILE"
+      break
+    else
+      echo "Invalid selection."
+    fi
+  done
+}
+
+# --- Always load ENC_DIR from config or ask user on first run ---
+if [ -f "$CONFIG_FILE" ]; then
+  source "$CONFIG_FILE"
+else
+  select_enclosure
+  source "$CONFIG_FILE"
+fi
+
+# --- Core functions ---
 
 parse_slot_grid() {
   SLOT_MAP=()
@@ -38,7 +75,8 @@ parse_display_labels_grid() {
   if [[ "$USE_CUSTOM_LABELS" == "1" && -n "$DISPLAY_LABELS_GRID" ]]; then
     while read -r line; do
       [[ -z "$line" ]] && continue
-      for label in $line; do
+      eval "set -- $line"
+      for label; do
         DISPLAY_LABELS+=( "$label" )
       done
     done <<< "$DISPLAY_LABELS_GRID"
@@ -114,7 +152,7 @@ lookup_serial() {
   read -p "Enter last 4 of serial number: " q
   q=$(echo "$q" | tr '[:lower:]' '[:upper:]' | xargs)
   found=0
-  for i in $(seq 1 24); do
+  for i in $(seq 1 $((COLS*ROWS))); do
     disk=$(ls "$ENC_DIR/Disk$(printf "%03d" $i)/device/block" 2>/dev/null)
     [ -z "$disk" ] && continue
     serial=$(smartctl -i "/dev/$disk" 2>/dev/null | awk -F: '/Serial Number/{print $2}' | xargs)
@@ -130,7 +168,7 @@ lookup_serial() {
 lookup_label() {
   read -p "Enter device label (e.g., sdo): " q
   q=$(echo "$q" | xargs)
-  for i in $(seq 1 24); do
+  for i in $(seq 1 $((COLS*ROWS))); do
     disk=$(ls "$ENC_DIR/Disk$(printf "%03d" $i)/device/block" 2>/dev/null)
     if [[ "$disk" == "$q" ]]; then
       serial=$(smartctl -i "/dev/$disk" 2>/dev/null | awk -F: '/Serial Number/{print $2}' | xargs)
@@ -141,17 +179,21 @@ lookup_label() {
   echo "Device label not found."
 }
 
+# --- Main menu loop ---
+
 while true; do
   echo
   echo "1) Lookup by Serial (last 4 chars, case-insensitive)"
   echo "2) Lookup by Label"
   echo "3) Show Slot Map (Grid)"
+  echo "4) Change Enclosure"
   echo "q) Quit"
   read -p "> " opt
   case $opt in
     1) lookup_serial ;;
     2) lookup_label ;;
     3) print_grid ;;
+    4) select_enclosure; source "$CONFIG_FILE" ;;
     q|Q) break ;;
     *) echo "Invalid option." ;;
   esac
