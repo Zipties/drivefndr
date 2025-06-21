@@ -24,6 +24,15 @@ If you’ve ever wondered “which drive is `/dev/sdm`?” or needed to swap a f
   All from a single terminal command. No web UI or browser.
 - **Easily Customizable:**  
   The slot order is stored in a simple mapping array—change it for your chassis in seconds.
+- **Automatic Enclosure Discovery:**  
+  Auto-detects available enclosures on first run; lets you pick and remembers your choice. You can re-select from the menu at any time.
+- **User-Configurable Slot Labels and Grid Size:**  
+  Set grid size and custom slot display labels at the top of the script, matching any chassis or rack labeling.
+- **Persistent Settings:**  
+  Remembers enclosure and label preferences across runs in a local config file.
+- **Robust Multi-word Label Support:**  
+  Supports quoted, multi-word slot labels for clear and accurate grid displays.
+
 
 ---
 
