@@ -30,8 +30,6 @@ If you’ve ever wondered “which drive is `/dev/sdm`?” or needed to swap a f
   Set grid size and custom slot display labels at the top of the script, matching any chassis or rack labeling.
 - **Persistent Settings:**  
   Remembers enclosure and label preferences across runs in a local config file.
-- **Robust Multi-word Label Support:**  
-  Supports quoted, multi-word slot labels for clear and accurate grid displays.
 
 
 ---
